@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>DragonBall</title>
+    <title>超级战士Z</title>
     <meta name="viewport"
         content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -24,12 +24,23 @@
     </style>
 </head>
 
+
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+
+<script src="sdk/sdk.js"></script>
+
+
+
 <body>
     <div style="margin: auto;width: 100%;height: 100%;" class="egret-player" data-entry-class="Main"
         data-orientation="portrait" data-scale-mode="showAll" data-frame-rate="60" data-content-width="750"
         data-content-height="1334" data-show-paint-rect="false" data-multi-fingered="2" data-show-fps="false"
         data-show-log="false" data-show-fps-style="x:0,y:0,size:12,textColor:0xffffff,bgAlpha:0.9">
     </div>
+    
+    
+    
     <script>
         window["Log_Clean"] = false;
         window["debug"] = true;
@@ -256,6 +267,12 @@
             egret.ExternalInterface.call("openURL", url);
         }
     </script>
+    
+    
+    
+    
+    
+    
 </body>
 
 </html>
