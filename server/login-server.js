@@ -16,11 +16,11 @@
 (function(window) {
     'use strict';
 
-    // ========================================================
-    // 1. STYLISH LOGGER - Same style as SDK
+                    // ========================================================
+    // 1. STYLISH LOGGER - FINAL FIX (NO LEAKS)
     // ========================================================
     var LOG = {
-        prefix: '%c🖥️ [LOGIN-SERVER]',
+        prefix: '🖥️ [LOGIN-SERVER]',
         styles: {
             title: 'background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%); color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;',
             success: 'color: #22c55e; font-weight: bold;',
@@ -36,19 +36,24 @@
         _log: function(level, icon, message, data) {
             var timestamp = new Date().toISOString().substr(11, 12);
             var style = this.styles[level] || this.styles.info;
-            var fullPrefix = this.prefix + ' [' + timestamp + '] ' + icon + ' ';
+            
+            // Perbaikan: Gunakan %c tepat sebelum teks yang ingin diwarnai
+            var format = '%c' + this.prefix + ' %c[' + timestamp + '] ' + icon + ' ' + message;
             
             if (data !== undefined) {
-                console.log(fullPrefix + message, this.styles.title, style, data);
+                // Tambahkan %o untuk data agar tidak bocor sebagai string
+                console.log(format + ' %o', this.styles.title, style, data);
             } else {
-                console.log(fullPrefix + message, this.styles.title, style);
+                console.log(format, this.styles.title, style);
             }
         },
         
         title: function(message) {
-            console.log(this.prefix + ' ══════════════════════════════════════════════════════', this.styles.title, this.styles.separator);
-            console.log(this.prefix + ' ' + message, this.styles.title, this.styles.title);
-            console.log(this.prefix + ' ══════════════════════════════════════════════════════', this.styles.title, this.styles.separator);
+            var line = '══════════════════════════════════════════════════════';
+            // KRUSIAL: Setiap argumen style harus punya pasangan %c di string format
+            console.log('%c' + this.prefix + ' %c' + line, this.styles.title, this.styles.separator);
+            console.log('%c' + this.prefix + ' %c' + message, this.styles.title, this.styles.title);
+            console.log('%c' + this.prefix + ' %c' + line, this.styles.title, this.styles.separator);
         },
         
         success: function(message, data) { this._log('success', '✅', message, data); },
@@ -59,6 +64,7 @@
         call: function(message, data) { this._log('call', '📞', message, data); },
         socket: function(message, data) { this._log('socket', '🔌', message, data); }
     };
+
 
     // ========================================================
     // 2. CONFIGURATION
