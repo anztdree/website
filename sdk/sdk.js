@@ -16,11 +16,11 @@
 (function(window) {
     'use strict';
 
-    // ========================================================
-    // 1. STYLISH LOGGER - Different from Bridge
+        // ========================================================
+    // 1. STYLISH LOGGER - FIXED VERSION
     // ========================================================
     var LOG = {
-        prefix: '%c📦 [SDK]',
+        prefix: '📦 [SDK]',
         styles: {
             title: 'background: linear-gradient(90deg, #059669 0%, #10b981 100%); color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;',
             success: 'color: #10b981; font-weight: bold;',
@@ -35,19 +35,23 @@
         _log: function(level, icon, message, data) {
             var timestamp = new Date().toISOString().substr(11, 12);
             var style = this.styles[level] || this.styles.info;
-            var fullPrefix = this.prefix + ' [' + timestamp + '] ' + icon + ' ';
+            
+            // Format: %c[Prefix] %c[Timestamp + Icon + Message]
+            var format = '%c' + this.prefix + ' %c[' + timestamp + '] ' + icon + ' ' + message;
             
             if (data !== undefined) {
-                console.log(fullPrefix + message, this.styles.title, style, data);
+                console.log(format, this.styles.title, style, data);
             } else {
-                console.log(fullPrefix + message, this.styles.title, style);
+                console.log(format, this.styles.title, style);
             }
         },
         
         title: function(message) {
-            console.log(this.prefix + ' ══════════════════════════════════════════════════════', this.styles.title, this.styles.separator);
-            console.log(this.prefix + ' ' + message, this.styles.title, this.styles.title);
-            console.log(this.prefix + ' ══════════════════════════════════════════════════════', this.styles.title, this.styles.separator);
+            var line = '══════════════════════════════════════════════════════';
+            // Gunakan dua %c: satu untuk badge SDK, satu untuk teks garis/pesan
+            console.log('%c' + this.prefix + '%c ' + line, this.styles.title, this.styles.separator);
+            console.log('%c' + this.prefix + '%c ' + message, this.styles.title, this.styles.title);
+            console.log('%c' + this.prefix + '%c ' + line, this.styles.title, this.styles.separator);
         },
         
         success: function(message, data) { this._log('success', '✅', message, data); },
@@ -57,6 +61,7 @@
         data: function(message, data) { this._log('data', '📊', message, data); },
         call: function(message, data) { this._log('call', '📞', message, data); }
     };
+
 
     // ========================================================
     // 2. STORAGE KEY
