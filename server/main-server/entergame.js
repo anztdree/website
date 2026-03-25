@@ -9,7 +9,7 @@
  * Load Order: AFTER socket.io.min.js, BEFORE main.min.js
  * 
  * Author: Local SDK Bridge
- * Version: 1.0.0
+ * Version: 1.1.0 - Fixed _heroBaseAttr structure
  * ============================================================
  */
 
@@ -222,9 +222,9 @@
         };
         
         // Add starting hero - COMPLETE FORMAT
-        // Based on SetHeroDataToModel AND HeroImageInfo requirements
+        // Based on SetHeroDataToModel - ALL required fields
         newPlayerData.heros[heroId] = {
-            // ID fields (both used in different contexts)
+            // ID fields
             _id: heroId,
             _heroId: heroId,
             _heroDisplayId: CONFIG.startHero.displayId,
@@ -245,15 +245,71 @@
             _skillLevelList: [],
             _superSkillResetCount: 0,
             _potentialResetCount: 0,
+            _superSkillLevel: [],      // ← CRITICAL! Super skill levels
+            _potentialLevel: [],       // ← CRITICAL! Potential skill levels
             
             // Equipment and fragments
             _equipQuality: {},
             _skinProgress: {},
             _fragment: 0,
             
-            // Tags and attributes
+            // Tags
             _heroTag: [],
-            _heroBaseAttr: null,
+            
+            // ========================================================
+            // HERO BASE ATTRIBUTES - CRITICAL!
+            // ========================================================
+            _heroBaseAttr: {
+                _hp: 1000,
+                _attack: 100,
+                _armor: 50,
+                _speed: 100,
+                _hit: 0,
+                _dodge: 0,
+                _block: 0,
+                _damageReduce: 0,
+                _armorBreak: 0,
+                _controlResist: 0,
+                _skillDamage: 0,
+                _criticalDamage: 0,
+                _blockEffect: 0,
+                _critical: 0,
+                _criticalResist: 0,
+                _trueDamage: 0,
+                _energy: 0,
+                _power: 500,
+                _extraArmor: 0,
+                _hpPercent: 0,
+                _armorPercent: 0,
+                _attackPercent: 0,
+                _speedPercent: 0,
+                _orghp: 1000,
+                _superDamage: 0,
+                _healPlus: 0,
+                _healerPlus: 0,
+                _damageDown: 0,
+                _shielderPlus: 0,
+                _damageUp: 0,
+                _level: CONFIG.startHero.level,
+                _maxlevel: 100,
+                _evolveLevel: 0,
+                _talent: 1
+            },
+            
+            // Qigong (Ki/Chi system)
+            _qigong: null,
+            _qigongTmp: null,
+            _qigongStage: 1,
+            _qigongTmpPower: 0,
+            
+            // Cost and Break
+            _totalCost: null,
+            _breakInfo: null,
+            _gemstoneSuitId: 0,
+            
+            // Link system
+            _linkTo: [],
+            _linkFrom: '',
             
             // Other
             _heroLife: 0,
@@ -340,6 +396,7 @@
                 totalProps: {
                     _items: playerData.items
                 },
+                backpackLevel: 1,          // ← CRITICAL! Must be >= 1 (bagPlus.json starts at "1")
                 
                 // ========================================================
                 // GAME PROGRESS DATA
@@ -469,13 +526,25 @@
                 guide: null,
                 
                 // ========================================================
-                // GIFT/INFO DATA
+                // GIFT/INFO DATA - Fixed structure based on main.min.js
                 // ========================================================
                 giftInfo: {
-                    _fristRecharge: false,
-                    _haveGotVipRewrd: false,
-                    _buyVipGiftCount: 0,
-                    _onlineGift: null,
+                    _id: "",
+                    _isBuyFund: false,
+                    _levelGiftCount: {},
+                    _levelBuyGift: {},
+                    _fundGiftCount: {},
+                    _gotChannelWeeklyRewardTag: "",
+                    _fristRecharge: {
+                        _canGetReward: false,
+                        _haveGotReward: false
+                    },
+                    _haveGotVipRewrd: {},
+                    _buyVipGiftCount: {},
+                    _onlineGift: {
+                        _curId: 0,
+                        _nextTime: 0
+                    },
                     _gotBSAddToHomeReward: false,
                     _clickHonghuUrlTime: 0
                 },
@@ -501,7 +570,98 @@
                 // ========================================================
                 // IMPRINT DATA
                 // ========================================================
-                imprint: playerData.imprint
+                imprint: playerData.imprint,
+                
+                // ========================================================
+                // ARENA DATA - Required by AltarInfoManger
+                // ========================================================
+                _arenaTeam: [],
+                _arenaSuper: [],
+                
+                // ========================================================
+                // RETRIEVE DATA - Required by GetBackReourceManager
+                // ========================================================
+                retrieve: null,
+                
+                // ========================================================
+                // BROADCAST RECORD - Required for chat system
+                // ========================================================
+                broadcastRecord: [],
+                
+                // ========================================================
+                // TOWER/KARIN DATA - Required by TowerDataManager
+                // ========================================================
+                karinStartTime: 0,
+                karinEndTime: 0,
+                
+                // ========================================================
+                // OPTIONAL DATA - With null defaults (safe to skip)
+                // ========================================================
+                monthCard: null,
+                recharge: null,
+                timesInfo: null,
+                userDownloadReward: null,
+                YouTuberRecruit: null,
+                userYouTuberRecruit: null,
+                timeMachine: null,
+                timeBonusInfo: null,
+                onlineBulletin: null,
+                serverVersion: null,
+                serverOpenDate: null,
+                // LastTeam - CRITICAL: Uses _superSkill (not _super) as per firstLoginSetMyMyTeam in main.min.js
+                // Game reads r._superSkill when parsing this data
+                lastTeam: {
+                    _lastTeamInfo: {
+                        "1": { _team: [], _superSkill: [] },   // FRIEND
+                        "5": { _team: [], _superSkill: [] },   // ARENA
+                        "6": { _team: [], _superSkill: [] },   // DUNGEON
+                        "9": { _team: [], _superSkill: [] },   // HANGUP
+                        "10": { _team: [], _superSkill: [] },  // KARIN
+                        "15": { _team: [], _superSkill: [] },  // TEMPLE
+                        "16": { _team: [], _superSkill: [] }   // TIME_MACHINE
+                    }
+                },
+                heroImageVersion: null,
+                superImageVersion: null,
+                training: null,
+                warInfo: null,
+                userWar: null,
+                headEffect: null,
+                userBallWar: null,
+                ballWarState: null,
+                ballBroadcast: null,
+                ballWarInfo: null,
+                guildActivePoints: null,
+                enableShowQQ: null,
+                showQQVip: null,
+                showQQ: null,
+                showQQImg1: null,
+                showQQImg2: null,
+                showQQUrl: null,
+                hideHeroes: null,
+                expedition: null,
+                timeTrial: null,
+                timeTrialNextOpenTime: null,
+                battleMedal: null,
+                shopNewHeroes: null,
+                teamDungeon: null,
+                teamServerHttpUrl: null,
+                teamDungeonOpenTime: null,
+                teamDungeonTask: null,
+                teamDungeonSplBcst: null,
+                teamDungeonNormBcst: null,
+                teamDungeonHideInfo: null,
+                templeLess: null,
+                teamDungeonInvitedFriends: null,
+                myTeamServerSocketUrl: null,
+                gemstone: null,
+                questionnaires: null,
+                userTopBattle: null,
+                topBattleInfo: null,
+                fastTeam: null,
+                forbiddenChat: null,
+                gravity: null,
+                littleGame: null
             };
             
             LOG.success('enterGame successful for user:', playerData.userId);
