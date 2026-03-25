@@ -776,17 +776,42 @@
             // Load or create player data
             var playerData = loadOrCreatePlayerData(request);
             
-            // Get handler
-            var handler = null;
+            // Build response helper
+            var buildResponse = function(data) {
+                return {
+                    ret: 0,
+                    data: typeof data === 'string' ? data : JSON.stringify(data),
+                    compress: false,
+                    serverTime: getServerTime(),
+                    server0Time: getServerTime()
+                };
+            };
             
-            if (request.type === 'user' && request.action === 'enterGame') {
+            // Get handler - check multiple sources
+            var handler = null;
+            var handlerKey = request.type + '.' + request.action;
+            
+            // 1. Check external handler registry (from separate files)
+            if (window.MAIN_SERVER_HANDLERS && window.MAIN_SERVER_HANDLERS[handlerKey]) {
+                handler = window.MAIN_SERVER_HANDLERS[handlerKey];
+                LOG.info('Using external handler: ' + handlerKey);
+            }
+            // 2. Check built-in handlers
+            else if (request.type === 'user' && request.action === 'enterGame') {
                 handler = RequestHandlers.enterGame;
-            } else {
+            }
+            // 3. Default handler
+            else {
                 handler = RequestHandlers.default;
             }
             
             if (handler) {
                 var response = handler(request, playerData);
+                
+                // Wrap response if not already wrapped
+                if (response.ret === undefined) {
+                    response = buildResponse(response);
+                }
                 
                 LOG.success('Handler executed: ' + request.type + '.' + request.action);
                 
@@ -906,8 +931,25 @@
     }
 
     // ========================================================
-    // 9. EXPORT FOR DEBUGGING
+    // 9. EXPORT FOR DEBUGGING & SHARED UTILS
     // ========================================================
+    // Export LOG for use by other handler files
+    window.MAIN_SERVER_LOG = LOG;
+    
+    // Export getServerTime for use by other handler files
+    window.MAIN_SERVER_UTILS = {
+        getServerTime: getServerTime,
+        buildResponse: function(data) {
+            return {
+                ret: 0,
+                data: typeof data === 'string' ? data : JSON.stringify(data),
+                compress: false,
+                serverTime: getServerTime(),
+                server0Time: getServerTime()
+            };
+        }
+    };
+    
     window.MAIN_SERVER_MOCK = {
         config: CONFIG,
         handlers: RequestHandlers,
