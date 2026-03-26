@@ -21,8 +21,8 @@
 		"server/main-server/getMsgList.js",
 		"server/main-server/friend/friendServerAction.js",
 		"server/main-server/chat/registChat.js",
-		"server/chat-server.js",	
-
+		"server/chat-server.js",
+		"server/main-server/handle.json",
 		"js/blockmessage.min_7dc7bcec.js",
 		"js/battlelogic.min_d446437e.js",
 		"js/ThinkingAnalyticsSDK.min_72d3fad5.js",
