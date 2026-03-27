@@ -410,6 +410,13 @@
                 summon: playerData.summon,
                 
                 // ========================================================
+                // SUMMON LOG - Required by SummonSingleton.setSummomLogList
+                // Structure: { "logId": { _userId, _userName, _heroDisplayId, _time }, ... }
+                // For new user, empty object
+                // ========================================================
+                summonLog: {},
+                
+                // ========================================================
                 // EQUIPMENT DATA
                 // ========================================================
                 equip: playerData.equip,
@@ -595,7 +602,7 @@
                 karinEndTime: 0,
                 
                 // ========================================================
-                // OPTIONAL DATA - With null defaults (safe to skip)
+                // DATA DENGAN NILAI DEFAULT (semua field WAJIB ada)
                 // ========================================================
                 monthCard: null,
                 recharge: null,
