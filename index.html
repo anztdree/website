@@ -81,81 +81,92 @@
             document.body.appendChild(s);
         };
 
-        var xhr = new XMLHttpRequest();
+                var xhr = new XMLHttpRequest();
         xhr.open('GET', './manifest.json?v=' + Math.random(), true);
         xhr.addEventListener("load", function () {
             var manifest = JSON.parse(xhr.response);
-            var list = manifest.initial.concat(manifest.game);
-            loadScript(list, function () {
-                /**
-                 * {
-                 * "renderMode":, //Engine rendering mode, "canvas" or "webgl"
-                 * "audioType": 0 //Use the audio type, 0: default, 2: web audio, 3: audio
-                 * "antialias": //Whether the anti-aliasing is enabled in WebGL mode, true: on, false: off, defaults to false
-                 * "calculateCanvasScaleFactor": //a function return canvas scale factor
-                 * }
-                 **/
 
-                window["loadJsonFunc"] = function (path) {
-                    return RES.getRes(path);
-                }
-                window["refreshPage"] = function () {
-                    egret.ExternalInterface.call("refresh", "refresh");
-                    window["show18Login"] = clientParams["show18Login"];
-                    window["show18Home"] = clientParams["show18Home"];
-                    window["sdkNativeChannel"] = clientParams["sdkNativeChannel"];
-                    window["showCurChannel"] = clientParams["showCurChannel"];
-                }
-                egret.ExternalInterface.addCallback("refresh", function (msg) {
-                    window.location.reload();
-                });
-                egret.ExternalInterface.addCallback("startGame", function (msg) {
-                    var json = JSON.parse(msg);
-                    if (json.thirdParams && json.thirdParams != "") {
-                        thirdParams = JSON.parse(json.thirdParams);
-                        window["osType"] = thirdParams.osType;
+            // --- MULAI PENAMBAHAN LOGIKA HANDLER ---
+            var xhrH = new XMLHttpRequest();
+            xhrH.open('GET', './_handler.json?v=' + Math.random(), true);
+            xhrH.addEventListener("load", function () {
+                var handlerList = JSON.parse(xhrH.response);
+                
+                // Gabungkan daftar bawaan manifest dengan daftar dari handler.json
+                var list = manifest.initial.concat(manifest.game).concat(handlerList);
+
+                // Jalankan loadScript dengan daftar gabungan
+                loadScript(list, function () {
+                    
+                    // --- SEMUA KODE ASLI KAMU DI BAWAH INI TETAP ADA ---
+                    window["loadJsonFunc"] = function (path) {
+                        return RES.getRes(path);
                     }
-                    loginServer = json.loginServer;
-                    window["gameIcon"] = json.thirdChannel;
-                    if (json.clientParams && json.clientParams != "") {
-                        clientParams = JSON.parse(json.clientParams);
-                        window["hideList"] = clientParams["hideList"];
-                        window["gameIcon"] = clientParams["gameIcon"];
-                        window["supportLang"] = clientParams["supportLang"];
-                        window["battleAudio"] = clientParams["battleAudio"];
-                        window["showUserCenterSdk"] = clientParams["showUserCenterSdk"];
-                        window["showContact"] = clientParams["showContact"];
-                         window["switchAccount"] = clientParams["switchAccount"];
+                    window["refreshPage"] = function () {
+                        egret.ExternalInterface.call("refresh", "refresh");
+                        window["show18Login"] = clientParams["show18Login"];
+                        window["show18Home"] = clientParams["show18Home"];
                         window["sdkNativeChannel"] = clientParams["sdkNativeChannel"];
                         window["showCurChannel"] = clientParams["showCurChannel"];
                     }
-                    if (window["osType"]) {
-                        window["version"] = json.version + " for " + window["osType"];
-                    } else {
-                        window["version"] = json.version;
-                    }
-                    window["versionConfig"] = json.versionConfig;
-                    window["debugLanguage"] = json.language;
-                    egret.runEgret({
-                        renderMode: "webgl",
-                        audioType: 0,
-                        calculateCanvasScaleFactor: function (context) {
-                            var backingStore = context.backingStorePixelRatio ||
-                                context.webkitBackingStorePixelRatio ||
-                                context.mozBackingStorePixelRatio ||
-                                context.msBackingStorePixelRatio ||
-                                context.oBackingStorePixelRatio ||
-                                context.backingStorePixelRatio || 1;
-                            return (window.devicePixelRatio || 1) / backingStore;
-                        }
+                    egret.ExternalInterface.addCallback("refresh", function (msg) {
+                        window.location.reload();
                     });
-                });
-                egret.ExternalInterface.call("startGame", "get Sdk Channel");
+                    egret.ExternalInterface.addCallback("startGame", function (msg) {
+                        var json = JSON.parse(msg);
+                        if (json.thirdParams && json.thirdParams != "") {
+                            thirdParams = JSON.parse(json.thirdParams);
+                            window["osType"] = thirdParams.osType;
+                        }
+                        loginServer = json.loginServer;
+                        window["gameIcon"] = json.thirdChannel;
+                        if (json.clientParams && json.clientParams != "") {
+                            clientParams = JSON.parse(json.clientParams);
+                            window["hideList"] = clientParams["hideList"];
+                            window["gameIcon"] = clientParams["gameIcon"];
+                            window["supportLang"] = clientParams["supportLang"];
+                            window["battleAudio"] = clientParams["battleAudio"];
+                            window["showUserCenterSdk"] = clientParams["showUserCenterSdk"];
+                            window["showContact"] = clientParams["showContact"];
+                            window["switchAccount"] = clientParams["switchAccount"];
+                            window["sdkNativeChannel"] = clientParams["sdkNativeChannel"];
+                            window["showCurChannel"] = clientParams["showCurChannel"];
+                        }
+                        if (window["osType"]) {
+                            window["version"] = json.version + " for " + window["osType"];
+                        } else {
+                            window["version"] = json.version;
+                        }
+                        window["versionConfig"] = json.versionConfig;
+                        window["debugLanguage"] = json.language;
+                        
+                        egret.runEgret({
+                            renderMode: "webgl",
+                            audioType: 0,
+                            calculateCanvasScaleFactor: function (context) {
+                                var backingStore = context.backingStorePixelRatio ||
+                                    context.webkitBackingStorePixelRatio ||
+                                    context.mozBackingStorePixelRatio ||
+                                    context.msBackingStorePixelRatio ||
+                                    context.oBackingStorePixelRatio ||
+                                    context.backingStorePixelRatio || 1;
+                                return (window.devicePixelRatio || 1) / backingStore;
+                            }
+                        });
+                    });
+                    egret.ExternalInterface.call("startGame", "get Sdk Channel");
 
+                }); // Akhir dari loadScript
             });
+            xhrH.send(null); // Kirim request handler
+            // --- AKHIR PENAMBAHAN LOGIKA HANDLER ---
+
         });
         xhr.send(null);
+
     </script>
+    
+    
     <script>
         var checkSDK = function () {
             egret.ExternalInterface.call("changeView", "change view");
@@ -267,9 +278,6 @@
             egret.ExternalInterface.call("openURL", url);
         }
     </script>
-    
-    
-    
     
     
     
