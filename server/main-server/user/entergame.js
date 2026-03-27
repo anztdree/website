@@ -1,15 +1,16 @@
 /**
  * ============================================================
- * MAIN-SERVER.JS - DragonBall HTML5 Mock Main Game Server
+ * ENTERGAME.JS - DragonBall HTML5 Mock Main Game Server
  * ============================================================
  * 
- * Purpose: Mock backend untuk main game server (port 9998)
- * Intercept koneksi ke main-server dan berikan response palsu
+ * Purpose: Handler untuk user.enterGame - Main login handler
+ * Returns ALL player data when user enters the game
  * 
- * Load Order: AFTER socket.io.min.js, BEFORE main.min.js
+ * IMPORTANT: Semua field WAJIB ada sesuai dengan saveUserData() di main.min.js
+ * Tidak ada field opsional - jika ada di handler, harus ada di response
  * 
  * Author: Local SDK Bridge
- * Version: 1.1.0 - Fixed _heroBaseAttr structure
+ * Version: 2.0.0 - 100% Aligned with main.min.js saveUserData()
  * ============================================================
  */
 
@@ -95,6 +96,10 @@
         return Date.now();
     }
     
+    /**
+     * Load existing player data or create new player data
+     * CRITICAL: All fields must match what saveUserData expects
+     */
     function loadOrCreatePlayerData(request) {
         // Get userId from request if available
         var requestUserId = request ? request.userId : null;
@@ -129,7 +134,9 @@
             lastLoginTime: now,
             
             // ========================================================
-            // USER INFO
+            // USER INFO - Used by setUserInfo()
+            // Fields: _id, _pwd, _nickName, _headImage, _lastLoginTime, 
+            //         _createTime, _bulletinVersions, _oriServerId, _nickChangeTimes
             // ========================================================
             user: {
                 _id: userId,
@@ -144,12 +151,13 @@
             },
             
             // ========================================================
-            // HEROES
+            // HEROES - Used by HerosManager.getInstance().readByData()
             // ========================================================
             heros: {},
             
             // ========================================================
-            // ITEMS/INVENTORY
+            // ITEMS/INVENTORY - Used by setBackpack()
+            // Items stored with key as string: { "101": { _id: 101, _num: x }, ... }
             // ========================================================
             items: {
                 '101': { _id: 101, _num: CONFIG.startItems.diamond },
@@ -157,7 +165,9 @@
             },
             
             // ========================================================
-            // HANGUP/AFK DATA
+            // HANGUP/AFK DATA - Used by setOnHook()
+            // Fields: _curLess, _maxPassLesson, _haveGotChapterReward, 
+            //         _maxPassChapter, _clickGlobalWarBuffTag, _buyFund, _haveGotFundReward
             // ========================================================
             hangup: {
                 _curLess: 10101,
@@ -170,7 +180,9 @@
             },
             
             // ========================================================
-            // SUMMON DATA
+            // SUMMON DATA - Used by setSummon()
+            // Fields: _energy, _wishList, _wishVersion, _canCommonFreeTime, 
+            //         _canSuperFreeTime, _summonTimes
             // ========================================================
             summon: {
                 _energy: 0,
@@ -182,33 +194,35 @@
             },
             
             // ========================================================
-            // EQUIPMENT
+            // EQUIPMENT - Used by setEquip()
             // ========================================================
             equip: {
                 _suits: {}
             },
             
             // ========================================================
-            // IMPRINT
+            // IMPRINT - Used by setSign()
+            // Structure: _items: { "imprintId": SignInfoModel, ... }
             // ========================================================
             imprint: {
                 _items: {}
             },
             
             // ========================================================
-            // DUNGEON
+            // DUNGEON - Used by setCounterpart()
+            // Structure: _dungeons: { "dungeonId": dungeonData, ... }
             // ========================================================
             dungeon: {
                 _dungeons: {}
             },
             
             // ========================================================
-            // CHECKIN
+            // CHECKIN - Used by setSignIn()
             // ========================================================
             checkin: {},
             
             // ========================================================
-            // CURRENT MAIN TASK
+            // CURRENT MAIN TASK - Used by setMainTask()
             // ========================================================
             curMainTask: 0,
             
@@ -221,8 +235,10 @@
             vipExp: 0
         };
         
-        // Add starting hero - COMPLETE FORMAT
-        // Based on SetHeroDataToModel - ALL required fields
+        // ========================================================
+        // ADD STARTING HERO - COMPLETE FORMAT
+        // Based on SetHeroDataToModel in main.min.js - ALL required fields
+        // ========================================================
         newPlayerData.heros[heroId] = {
             // ID fields
             _id: heroId,
@@ -245,8 +261,8 @@
             _skillLevelList: [],
             _superSkillResetCount: 0,
             _potentialResetCount: 0,
-            _superSkillLevel: [],      // ← CRITICAL! Super skill levels
-            _potentialLevel: [],       // ← CRITICAL! Potential skill levels
+            _superSkillLevel: [],
+            _potentialLevel: [],
             
             // Equipment and fragments
             _equipQuality: {},
@@ -349,6 +365,8 @@
          * Handle user.enterGame
          * Main login handler - returns all player data
          * This is called AFTER verify is complete
+         * 
+         * CRITICAL: Semua field harus ada sesuai saveUserData() di main.min.js
          */
         enterGame: function(request, playerData) {
             LOG.title('HANDLING: user.enterGame');
@@ -371,69 +389,113 @@
             
             // ========================================================
             // BUILD COMPLETE RESPONSE DATA
-            // Based on saveUserData() in main.min.js
+            // Based on saveUserData() in main.min.js - ALL FIELDS REQUIRED
             // ========================================================
             var responseData = {
+                
                 // ========================================================
-                // CORE USER DATA
+                // 1. CURRENCY - ts.currency = e.currency
                 // ========================================================
-                user: playerData.user,
                 currency: {
                     diamond: playerData.items['101'] ? playerData.items['101']._num : 0,
                     gold: playerData.items['102'] ? playerData.items['102']._num : 0
                 },
                 
                 // ========================================================
-                // HERO DATA
+                // 2. USER INFO - t.setUserInfo(e)
+                // Used fields: _id, _pwd, _nickName, _headImage, _lastLoginTime,
+                //              _createTime, _bulletinVersions, _oriServerId, _nickChangeTimes
+                // ========================================================
+                user: playerData.user,
+                
+                // ========================================================
+                // 3. HANGUP/ONHOOK - t.setOnHook(e)
+                // Used fields: _curLess, _maxPassLesson, _haveGotChapterReward,
+                //              _maxPassChapter, _clickGlobalWarBuffTag, _buyFund, _haveGotFundReward
+                // Also uses: globalWarBuffTag, globalWarLastRank, globalWarBuff, globalWarBuffEndTime
+                // ========================================================
+                hangup: playerData.hangup,
+                globalWarBuffTag: null,
+                globalWarLastRank: 0,
+                globalWarBuff: null,
+                globalWarBuffEndTime: 0,
+                
+                // ========================================================
+                // 4. SUMMON - t.setSummon(e)
+                // Used fields: _energy, _wishList, _wishVersion, _canCommonFreeTime,
+                //              _canSuperFreeTime, _summonTimes
+                // ========================================================
+                summon: playerData.summon,
+                
+                // ========================================================
+                // 5. BACKPACK/ITEMS - t.setBackpack(e)
+                // totalProps._items and backpackLevel
+                // ========================================================
+                totalProps: {
+                    _items: playerData.items
+                },
+                backpackLevel: 1,
+                
+                // ========================================================
+                // 6. SIGN/IMPRINT - t.setSign(e)
+                // imprint._items structure
+                // ========================================================
+                imprint: playerData.imprint,
+                
+                // ========================================================
+                // 7. EQUIP - t.setEquip(e)
+                // ========================================================
+                equip: playerData.equip,
+                
+                // ========================================================
+                // 8. DRAGON EQUIP - ItemsCommonSingleton.getInstance().initDragonBallEquip()
+                // ========================================================
+                dragonEquiped: null,
+                
+                // ========================================================
+                // 9. COUNTERPART/DUNGEON - t.setCounterpart(e)
+                // dungeon._dungeons structure
+                // ========================================================
+                dungeon: playerData.dungeon,
+                
+                // ========================================================
+                // 10. TEAM TECHNOLOGY - t.setTeamTechnology(e)
+                // ========================================================
+                teamTechnology: null,
+                
+                // ========================================================
+                // 11. TEAM TRAINING - t.setTeamTraining(e)
+                // e.teamTraining && TeamTrainingManager.getInstance().saveTeamTraining()
+                // ========================================================
+                teamTraining: null,
+                
+                // ========================================================
+                // 12. SUPER SKILL - SuperSkillSingleton.getInstance().initSuperSkill()
+                // ========================================================
+                superSkill: {},
+                
+                // ========================================================
+                // 13. HERO SKIN - e.heroSkin && HerosManager.getInstance().setSkinData()
+                // ========================================================
+                heroSkin: null,
+                
+                // ========================================================
+                // 14. HEROS - HerosManager.getInstance().readByData(e.heros)
+                // Structure: { _heros: { heroId: heroData, ... } }
                 // ========================================================
                 heros: {
                     _heros: playerData.heros
                 },
                 
                 // ========================================================
-                // INVENTORY DATA
-                // ========================================================
-                totalProps: {
-                    _items: playerData.items
-                },
-                backpackLevel: 1,          // ← CRITICAL! Must be >= 1 (bagPlus.json starts at "1")
-                
-                // ========================================================
-                // GAME PROGRESS DATA
-                // ========================================================
-                hangup: playerData.hangup,
-                curMainTask: playerData.curMainTask,
-                
-                // ========================================================
-                // SUMMON DATA
-                // ========================================================
-                summon: playerData.summon,
-                
-                // ========================================================
-                // SUMMON LOG - Required by SummonSingleton.setSummomLogList
+                // 15. SUMMON LOG - SummonSingleton.getInstance().setSummomLogList(e)
                 // Structure: { "logId": { _userId, _userName, _heroDisplayId, _time }, ... }
-                // For new user, empty object
                 // ========================================================
                 summonLog: {},
                 
                 // ========================================================
-                // EQUIPMENT DATA
-                // ========================================================
-                equip: playerData.equip,
-                dragonEquiped: null,
-                
-                // ========================================================
-                // DUNGEON DATA
-                // ========================================================
-                dungeon: playerData.dungeon,
-                
-                // ========================================================
-                // CHECKIN/SIGNIN DATA
-                // ========================================================
-                checkin: playerData.checkin,
-                
-                // ========================================================
-                // GUILD/TEAM DATA
+                // 16. TEAM/GUILD - t.setTeam(e)
+                // userGuild, userGuildPub, guildLevel, guildTreasureMatchRet
                 // ========================================================
                 userGuild: null,
                 userGuildPub: null,
@@ -442,13 +504,32 @@
                 guildTreasureMatchRet: null,
                 
                 // ========================================================
-                // TEAM TECHNOLOGY & TRAINING
+                // 17. MAIN TASK - t.setMainTask(e)
+                // e.curMainTask
                 // ========================================================
-                teamTechnology: null,
-                teamTraining: null,
+                curMainTask: playerData.curMainTask,
                 
                 // ========================================================
-                // SCHEDULE INFO - ALL FIELDS FROM initData()
+                // 18. CHECKIN/SIGNIN - t.setSignIn(e)
+                // e.checkin
+                // ========================================================
+                checkin: playerData.checkin,
+                
+                // ========================================================
+                // 19. CHANNEL SPECIAL - WelfareInfoManager.getInstance().channelSpecial
+                // Also channelSpecial._honghuUrl, _honghuUrlStartTime, _honghuUrlEndTime
+                // ========================================================
+                channelSpecial: {},
+                
+                // ========================================================
+                // 20. CELLGAME HAVE SET HERO
+                // void 0 != e.cellgameHaveSetHero && (e.scheduleInfo._cellgameHaveSetHero = e.cellgameHaveSetHero)
+                // ========================================================
+                cellgameHaveSetHero: false,
+                
+                // ========================================================
+                // 21. SCHEDULE INFO - AllRefreshCount.getInstance().initData(e.scheduleInfo)
+                // CRITICAL: All these fields are required by initData()
                 // ========================================================
                 scheduleInfo: {
                     _cellgameHaveSetHero: false,
@@ -499,41 +580,32 @@
                     _topBattleBuyCount: 0,
                     _gravityTrialBuyTimesCount: 0
                 },
-                cellgameHaveSetHero: false,
                 
                 // ========================================================
-                // NEW USER FLAG
-                // ========================================================
-                newUser: isNewUser,
-                
-                // ========================================================
-                // SUPER SKILL DATA
-                // ========================================================
-                superSkill: {},
-                
-                // ========================================================
-                // HERO SKIN DATA
-                // ========================================================
-                heroSkin: null,
-                
-                // ========================================================
-                // RESONANCE DATA
-                // ========================================================
-                resonance: null,
-                
-                // ========================================================
-                // VIP DATA
+                // 22. VIP LOG - e.vipLog && WelfareInfoManager.getInstance().setVipLogList()
                 // ========================================================
                 vipLog: null,
+                
+                // ========================================================
+                // 23. CARD LOG - e.cardLog && WelfareInfoManager.getInstance().setMonthCardLogList()
+                // ========================================================
                 cardLog: null,
                 
                 // ========================================================
-                // GUIDE DATA
+                // 24. GUIDE - e.guide && GuideInfoManager.getInstance().setGuideInfo()
                 // ========================================================
                 guide: null,
                 
                 // ========================================================
-                // GIFT/INFO DATA - Fixed structure based on main.min.js
+                // 25. CLICK SYSTEM - e.clickSystem._clickSys
+                // ========================================================
+                clickSystem: null,
+                
+                // ========================================================
+                // 26. GIFT INFO - Multiple uses in WelfareInfoManager
+                // _gotChannelWeeklyRewardTag, _fristRecharge, _haveGotVipRewrd,
+                // _buyVipGiftCount, _onlineGift, _gotBSAddToHomeReward, _clickHonghuUrlTime
+                // Also: _levelGiftCount, _levelBuyGift, _fundGiftCount
                 // ========================================================
                 giftInfo: {
                     _id: "",
@@ -557,122 +629,296 @@
                 },
                 
                 // ========================================================
-                // CHANNEL SPECIAL DATA
+                // 27. MONTH CARD - e.monthCard && WelfareInfoManager.getInstance().setMonthCardInfo()
                 // ========================================================
-                channelSpecial: {},
+                monthCard: null,
                 
                 // ========================================================
-                // CLICK SYSTEM DATA
+                // 28. RECHARGE - e.recharge && WelfareInfoManager.getInstance().setRechargeInfo()
                 // ========================================================
-                clickSystem: null,
+                recharge: null,
                 
                 // ========================================================
-                // GLOBAL WAR DATA
+                // 29. TIMES INFO - e.timesInfo && TimesInfoSingleton.getInstance().initData()
                 // ========================================================
-                globalWarBuffTag: null,
-                globalWarLastRank: 0,
-                globalWarBuff: null,
-                globalWarBuffEndTime: 0,
+                timesInfo: null,
                 
                 // ========================================================
-                // IMPRINT DATA
+                // 30. USER DOWNLOAD REWARD
+                // Fields: _isClick, _haveGotDlReward, _isBind, _haveGotBindReward
                 // ========================================================
-                imprint: playerData.imprint,
+                userDownloadReward: null,
                 
                 // ========================================================
-                // ARENA DATA - Required by AltarInfoManger
+                // 31. YOUTUBER RECRUIT - e.YouTuberRecruit && !e.YouTuberRecruit._hidden
+                // Also: userYouTuberRecruit
+                // ========================================================
+                YouTuberRecruit: null,
+                userYouTuberRecruit: null,
+                
+                // ========================================================
+                // 32. TIME MACHINE - e.timeMachine && TimeLeapSingleton.getInstance().initData()
+                // ========================================================
+                timeMachine: null,
+                
+                // ========================================================
+                // 33. ARENA TEAM - AltarInfoManger.getInstance().setArenaTeamInfo(e._arenaTeam)
                 // ========================================================
                 _arenaTeam: [],
+                
+                // ========================================================
+                // 34. ARENA SUPER - AltarInfoManger.getInstance().setArenaSuperInfo(e._arenaSuper)
+                // ========================================================
                 _arenaSuper: [],
                 
                 // ========================================================
-                // RETRIEVE DATA - Required by GetBackReourceManager
+                // 35. TIME BONUS INFO - TimeLimitGiftBagManager.getInstance().setTimeLimitGiftBag()
                 // ========================================================
-                retrieve: null,
+                timeBonusInfo: null,
                 
                 // ========================================================
-                // BROADCAST RECORD - Required for chat system
+                // 36. ONLINE BULLETIN - e.onlineBulletin && BulletinSingleton.getInstance().setBulletInfo()
                 // ========================================================
-                broadcastRecord: [],
+                onlineBulletin: null,
                 
                 // ========================================================
-                // TOWER/KARIN DATA - Required by TowerDataManager
+                // 37. KARIN TIME - TowerDataManager.getInstance().setKarinTime()
                 // ========================================================
                 karinStartTime: 0,
                 karinEndTime: 0,
                 
                 // ========================================================
-                // DATA DENGAN NILAI DEFAULT (semua field WAJIB ada)
+                // 38. SERVER VERSION - UserInfoSingleton.getInstance().serverVersion
                 // ========================================================
-                monthCard: null,
-                recharge: null,
-                timesInfo: null,
-                userDownloadReward: null,
-                YouTuberRecruit: null,
-                userYouTuberRecruit: null,
-                timeMachine: null,
-                timeBonusInfo: null,
-                onlineBulletin: null,
                 serverVersion: null,
+                
+                // ========================================================
+                // 39. SERVER OPEN DATE - UserInfoSingleton.getInstance().setServerOpenDate()
+                // ========================================================
                 serverOpenDate: null,
-                // LastTeam - CRITICAL: Uses _superSkill (not _super) as per firstLoginSetMyMyTeam in main.min.js
-                // Game reads r._superSkill when parsing this data
+                
+                // ========================================================
+                // 40. LAST TEAM - UserInfoSingleton.getInstance().firstLoginSetMyTeam(e.lastTeam._lastTeamInfo)
+                // CRITICAL: Uses _superSkill (not _super)
+                // Team types: 1=FRIEND, 5=ARENA, 6=DUNGEON, 9=HANGUP, 10=KARIN, 15=TEMPLE, 16=TIME_MACHINE
+                // ========================================================
                 lastTeam: {
                     _lastTeamInfo: {
-                        "1": { _team: [], _superSkill: [] },   // FRIEND
-                        "5": { _team: [], _superSkill: [] },   // ARENA
-                        "6": { _team: [], _superSkill: [] },   // DUNGEON
-                        "9": { _team: [], _superSkill: [] },   // HANGUP
-                        "10": { _team: [], _superSkill: [] },  // KARIN
-                        "15": { _team: [], _superSkill: [] },  // TEMPLE
-                        "16": { _team: [], _superSkill: [] }   // TIME_MACHINE
+                        "1": { _team: [], _superSkill: [] },
+                        "5": { _team: [], _superSkill: [] },
+                        "6": { _team: [], _superSkill: [] },
+                        "9": { _team: [], _superSkill: [] },
+                        "10": { _team: [], _superSkill: [] },
+                        "15": { _team: [], _superSkill: [] },
+                        "16": { _team: [], _superSkill: [] }
                     }
                 },
+                
+                // ========================================================
+                // 41. HERO IMAGE VERSION - UserInfoSingleton.getInstance().heroImageVersion
+                // ========================================================
                 heroImageVersion: null,
+                
+                // ========================================================
+                // 42. SUPER IMAGE VERSION - UserInfoSingleton.getInstance().superImageVersion
+                // ========================================================
                 superImageVersion: null,
+                
+                // ========================================================
+                // 43. TRAINING - PadipataInfoManager.getInstance().setPadipataModel()
+                // ========================================================
                 training: null,
+                
+                // ========================================================
+                // 44. WAR INFO - GlobalWarManager.getInstance().setWarLoginInfo()
+                // ========================================================
                 warInfo: null,
+                
+                // ========================================================
+                // 45. USER WAR - GlobalWarManager.getInstance().setUserWarModel()
+                // ========================================================
                 userWar: null,
+                
+                // ========================================================
+                // 46. HEAD EFFECT - HeadEffectModel
+                // ========================================================
                 headEffect: null,
+                
+                // ========================================================
+                // 47. USER BALL WAR - TeamInfoManager.getInstance().UserBallWar
+                // ========================================================
                 userBallWar: null,
+                
+                // ========================================================
+                // 48. BALL WAR STATE - TeamInfoManager.getInstance().BallWarState
+                // ========================================================
                 ballWarState: null,
+                
+                // ========================================================
+                // 49. BALL BROADCAST - TeamInfoManager.getInstance().setBallWarBrodecast()
+                // ========================================================
                 ballBroadcast: null,
+                
+                // ========================================================
+                // 50. BALL WAR INFO - GuildBallWarInfo
+                // ========================================================
                 ballWarInfo: null,
+                
+                // ========================================================
+                // 51. GUILD ACTIVE POINTS - TeamInfoManager.getInstance().setActivePoints()
+                // ========================================================
                 guildActivePoints: null,
+                
+                // ========================================================
+                // 52. QQ RELATED FIELDS - WelfareInfoManager
+                // enableShowQQ, showQQVip, showQQ, showQQImg1, showQQImg2, showQQUrl
+                // ========================================================
                 enableShowQQ: null,
                 showQQVip: null,
                 showQQ: null,
                 showQQImg1: null,
                 showQQImg2: null,
                 showQQUrl: null,
+                
+                // ========================================================
+                // 53. HIDE HEROES - WelfareInfoManager.getInstance().setHideHeroes()
+                // ========================================================
                 hideHeroes: null,
+                
+                // ========================================================
+                // 54. EXPEDITION - ExpeditionManager.getInstance().setExpeditionModel()
+                // ========================================================
                 expedition: null,
+                
+                // ========================================================
+                // 55. TIME TRIAL - SpaceTrialManager.getInstance().setSpaceTrialModel()
+                // e.timeTrial, e.timeTrialNextOpenTime
+                // ========================================================
                 timeTrial: null,
                 timeTrialNextOpenTime: null,
+                
+                // ========================================================
+                // 56. RETRIEVE - GetBackReourceManager.getInstance().setRetrieveModel()
+                // ========================================================
+                retrieve: null,
+                
+                // ========================================================
+                // 57. BATTLE MEDAL - BattleMedalManager.getInstance().setBattleMedal()
+                // ========================================================
                 battleMedal: null,
+                
+                // ========================================================
+                // 58. SHOP NEW HEROES - ShopInfoManager.getInstance().shopNewHero
+                // ========================================================
                 shopNewHeroes: null,
+                
+                // ========================================================
+                // 59. TEAM DUNGEON - TeamworkManager.getInstance().setLoginInfo()
+                // ========================================================
                 teamDungeon: null,
+                
+                // ========================================================
+                // 60. TEAM SERVER HTTP URL - TeamworkManager.getInstance().teamServerHttpUrl
+                // ========================================================
                 teamServerHttpUrl: null,
+                
+                // ========================================================
+                // 61. TEAM DUNGEON OPEN TIME - TeamworkManager.getInstance().teamDungeonOpenTime
+                // ========================================================
                 teamDungeonOpenTime: null,
+                
+                // ========================================================
+                // 62. TEAM DUNGEON TASK - TeamworkManager.getInstance().teamDungeonTask.deserialize()
+                // ========================================================
                 teamDungeonTask: null,
+                
+                // ========================================================
+                // 63. TEAM DUNGEON BROADCASTS
+                // teamDungeonSplBcst (special), teamDungeonNormBcst (normal)
+                // ========================================================
                 teamDungeonSplBcst: null,
                 teamDungeonNormBcst: null,
+                
+                // ========================================================
+                // 64. TEAM DUNGEON HIDE INFO - TeamworkManager.getInstance().setTeamDungeonHideInfo()
+                // ========================================================
                 teamDungeonHideInfo: null,
+                
+                // ========================================================
+                // 65. TEMPLE LESS - TrialManager.getInstance().setTempleLess()
+                // ========================================================
                 templeLess: null,
+                
+                // ========================================================
+                // 66. TEAM DUNGEON INVITED FRIENDS - TeamworkManager.getInstance().teamDungeonInvitedFriends
+                // ========================================================
                 teamDungeonInvitedFriends: null,
+                
+                // ========================================================
+                // 67. MY TEAM SERVER SOCKET URL - ts.loginInfo.serverItem.dungeonurl
+                // ========================================================
                 myTeamServerSocketUrl: null,
+                
+                // ========================================================
+                // 68. GEMSTONE - EquipInfoManager.getInstance().saveGemStone()
+                // ========================================================
                 gemstone: null,
+                
+                // ========================================================
+                // 69. QUESTIONNAIRES - UserInfoSingleton.getInstance().setQuestData()
+                // ========================================================
                 questionnaires: null,
+                
+                // ========================================================
+                // 70. RESONANCE - HerosManager.getInstance().setResonanceModel()
+                // ========================================================
+                resonance: null,
+                
+                // ========================================================
+                // 71. TOP BATTLE - TopBattleManager.getInstance().setTopBattleLoginInfo()
+                // userTopBattle, topBattleInfo
+                // ========================================================
                 userTopBattle: null,
                 topBattleInfo: null,
+                
+                // ========================================================
+                // 72. FAST TEAM - HerosManager.getInstance().saveLoginFastTeam()
+                // ========================================================
                 fastTeam: null,
+                
+                // ========================================================
+                // 73. BROADCAST RECORD - BroadcastSingleton.getInstance().setBlacklistPlayerInfo()
+                // ========================================================
+                broadcastRecord: [],
+                
+                // ========================================================
+                // 74. FORBIDDEN CHAT - BroadcastSingleton.getInstance().setUserBidden()
+                // ========================================================
                 forbiddenChat: null,
+                
+                // ========================================================
+                // 75. GRAVITY - TrialManager.getInstance().setGravityTrialInfo()
+                // ========================================================
                 gravity: null,
-                littleGame: null
+                
+                // ========================================================
+                // 76. LITTLE GAME - LittleGameManager.getInstance().saveData()
+                // ========================================================
+                littleGame: null,
+                
+                // ========================================================
+                // 77. NEW USER FLAG
+                // ========================================================
+                newUser: isNewUser,
+                
+                // ========================================================
+                // 78. SERVER ID - UserInfoSingleton.getInstance().setServerId()
+                // ========================================================
+                serverId: CONFIG.serverId
             };
             
             LOG.success('enterGame successful for user:', playerData.userId);
-            LOG.data('Response Data:', responseData);
+            LOG.data('Response Data Keys:', Object.keys(responseData));
             
             return buildResponse(responseData);
         },
@@ -924,7 +1170,7 @@
     // 8. INITIALIZE
     // ========================================================
     function init() {
-        LOG.title('Main-Server Mock v1.0.0 Initialized');
+        LOG.title('Main-Server Mock v2.0.0 Initialized');
         LOG.info('Server ID:', CONFIG.serverId);
         LOG.info('Server Name:', CONFIG.serverName);
         LOG.info('Start Hero ID:', CONFIG.startHero.displayId);
@@ -932,6 +1178,8 @@
         LOG.info('');
         LOG.info('💡 Supported handlers:');
         LOG.info('   - user.enterGame');
+        LOG.info('');
+        LOG.info('📋 Response contains 78 data fields aligned with saveUserData()');
         
         // Intercept Socket.IO
         interceptSocketIO();
