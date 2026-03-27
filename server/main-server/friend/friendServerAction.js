@@ -239,7 +239,8 @@
 
         /**
          * getMsg - Mendapatkan pesan dari teman
-         * Request: { friendId: string, time: number (optional, for pagination) }
+         * Request: { friendId: string, time: number }
+         * Note: time = 0 untuk mendapatkan semua pesan, atau timestamp untuk pagination
          * Response: { _msgs: [ { _time, _isSelf, _context }, ... ] }
          */
         getMsg: function(request, playerData) {
@@ -505,7 +506,8 @@
 
         /**
          * getChatMsg - Mendapatkan pesan chat (untuk invite)
-         * Request: { time: number (optional) }
+         * Request: { time: number }
+         * Note: time = 0 untuk mendapatkan semua pesan
          * Response: { _msgs: [ ... ] }
          */
         getChatMsg: function(request, playerData) {
